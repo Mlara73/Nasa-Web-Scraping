@@ -2,6 +2,7 @@ from splinter import Browser
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
+import time
 
 
 def init_browser():
@@ -12,27 +13,35 @@ def init_browser():
 
 def scrape():
 
-    mars_latest = {}
+    # initializing browser
     browser = init_browser()
+    mars_latest = {}
 
     #NASA Mars News
 
-    #define url and browse
-    url = 'https://mars.nasa.gov/news/'
-    browser.visit(url)
+    # a while loop to refresh the page when it gets stuck
+    counter = 0
+    while (not counter>5):
+    
+        html_news = browser.html
+        soup = BeautifulSoup(html_news, 'html.parser')
+    
+        url_news = 'https://mars.nasa.gov/news/?page=0&per_page=40&order=publish_date+desc%2Ccreated_at+desc&search=&category=19%2C165%2C184%2C204&blank_scope=Latest'
+        browser.visit(url_news)
+    
+        if soup.find_all('div', class_='list_text'):
+            results_news= soup.find_all('div', class_='list_text')      
+            break    
+        else:
+            counter= counter+1
+            time.sleep(3);
 
-    #parsing with BeautifulSoup and the html.parser
-    html = browser.html
-    soup = BeautifulSoup(html, 'html.parser')
-
-    #retrieve all news
-    results= soup.find_all('div', class_='list_text')
-    # retrieve the title, new, and  date  of the first list element
+    # data scraping and storing
     titles_list = []
     p_list= []
     date= []
 
-    for result in results:
+    for result in results_news:
         content_title= result.find('div', class_= 'content_title').text
         paragraphs= result.find('div', class_='article_teaser_body').text
         dates= result.find('div', class_='list_date').text
@@ -43,29 +52,25 @@ def scrape():
     news_title= titles_list[0]
     news_p= p_list[0]
     date_info= date[0]
-    #close browser
-    browser.quit()
-    
+
     
 #--------------------------------------------------------------------------
     #JPL Mars Space Images - Featured Image
-
-    browser = init_browser()
     #define url and browse
-    url = 'https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars'
-    browser.visit(url)
+    url_images = 'https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars'
+    browser.visit(url_images)
 
     #parsing with BeautifulSoup and the html.parser
-    html = browser.html
-    soup = BeautifulSoup(html, 'html.parser')
+    html_images = browser.html
+    soup = BeautifulSoup(html_images, 'html.parser')
 
     #automatic clicks
     medium_image_button = browser.click_link_by_partial_text('FULL IMAGE')
     more_info_button= browser.click_link_by_partial_text('more info')
 
     #parsing with BeautifulSoup and the html.parser
-    html = browser.html
-    soup = BeautifulSoup(html, 'html.parser')
+    html_more_info = browser.html
+    soup = BeautifulSoup(html_more_info, 'html.parser')
 
     #retrieve href link image
     featured_image = soup.find("figure", class_="lede")
@@ -73,50 +78,52 @@ def scrape():
     featured_image_clik= browser.click_link_by_href(featured_image_href)
 
     #parsing with BeautifulSoup and the html.parser in the new page
-    html = browser.html
-    soup = BeautifulSoup(html, 'html.parser')
+    html_href = browser.html
+    soup = BeautifulSoup(html_href, 'html.parser')
 
     #retrieving the full size image url
     full_image_url= soup.img["src"]
 
-    #close browser
-    browser.quit()
-
 #------------------------------------------------------------------------------
     #Mars Weather
 
-    browser = init_browser()
+    # a while loop to refresh the page when it gets stuck
+    counter_weather = 0
+    while (not counter_weather>5):
+    
+        #parsing with BeautifulSoup and the html.parser
+        html_tweeter = browser.html
+        soup = BeautifulSoup(html_tweeter, 'html.parser')
+    
+        #define url and browse
+        url_tweeter = 'https://twitter.com/marswxreport?lang=en'
+        browser.visit(url_tweeter)
+    
+        if soup.find_all("div",class_='css-901oao r-hkyrab r-1qd0xha r-a023e6 r-16dba41 r-ad9z0x r-bcqeeo r-bnwqim r-qvutc0'):
+            weather_tweets= soup.find_all("div",class_='css-901oao r-hkyrab r-1qd0xha r-a023e6 r-16dba41 r-ad9z0x r-bcqeeo r-bnwqim r-qvutc0')
+            break
+        else:
+            counter_weather = counter_weather + 1
+            time.sleep(3);
+    #data scraping and storing
 
-    #define url and browse
-    url = 'https://twitter.com/marswxreport?lang=en'
-    browser.visit(url)
-  
-    #parsing with BeautifulSoup and the html.parser
-    html = browser.html
-    soup = BeautifulSoup(html, 'lxml')
-
-    #find all tweets
-    weather_tweets= soup.find_all("div",class_='css-901oao r-hkyrab r-1qd0xha r-a023e6 r-16dba41 r-ad9z0x r-bcqeeo r-bnwqim r-qvutc0')
-
-    #retrieve only the first weather tweet
     tweets_list=[]
     for tweet in weather_tweets:
         tweet_text= tweet.find('span', class_='css-901oao css-16my406 r-1qd0xha r-ad9z0x r-bcqeeo r-qvutc0').text
+
         if 'InSight' in tweet_text:
             tweets_list.append(tweet_text)
             break
         else:
             pass
     mars_weather= tweets_list[0]
-    print(mars_weather)
-    # browser.quit()
-
 #------------------------------------------------------------------------------
     #Mars Fcats
-    url = 'https://space-facts.com/mars/'
+    url_facts = 'https://space-facts.com/mars/'
+    browser.visit(url_facts)
 
     #reading htm
-    mars_table = pd.read_html(url)
+    mars_table = pd.read_html(url_facts)
 
     #converting html table into df
     df = mars_table[0]
@@ -130,12 +137,12 @@ def scrape():
     #Mars Hemispheres
 
     #define url and browse
-    url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
-    browser.visit(url)
+    url_hemispheres = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
+    browser.visit(url_hemispheres)
 
     #parsing with BeautifulSoup and the html.parser
-    html = browser.html
-    soup = BeautifulSoup(html, 'html.parser')
+    html_hemispheres = browser.html
+    soup = BeautifulSoup(html_hemispheres, 'html.parser')
 
     #retrieve all descriptions
     descriptions_text= soup.find_all("div",class_="description")
@@ -145,12 +152,12 @@ def scrape():
         try:
             title = description.h3.text
             link_title= browser.click_link_by_partial_text(title)
-            html = browser.html
-            soup = BeautifulSoup(html, 'html.parser')
+            html_title = browser.html
+            soup = BeautifulSoup(html_title, 'html.parser')
             img_results= soup.find('div',class_="downloads")
             img_url= img_results.a['href']
         
-            browser.visit(url)
+            browser.visit(url_hemispheres)
         
              
             if title and img_url:
@@ -170,7 +177,6 @@ def scrape():
     mars_latest['mars_table']= mars_html_table
     mars_latest['hemisphere_list']= hemisphere_image_urls
 
-    print(mars_latest)
     return mars_latest   
 
 
