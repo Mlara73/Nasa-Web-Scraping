@@ -16,7 +16,7 @@
 
 p{
     font-family: Arial;
-    font-size: x-large;
+    font-size: large;
  }
 
 .right-align{
@@ -27,6 +27,9 @@ h1{
     font-family: Verdana, Geneva, Tahoma, sans-serif;
     font-size:xx-large
 }
+
+h4{font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size:xx-large}
 
 .center {
     display: block;
